@@ -1,7 +1,12 @@
+require('dotenv').config()
+
 const throng = require('throng')
 const Queue = require('bull')
 
+
+
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+console.log('Worker REDIS_URL', REDIS_URL)
 
 const workers = process.env.WEB_CONCURRENCY || 2
 
@@ -13,8 +18,19 @@ function sleep(ms) {
 
 function start() {
   console.log('Work Queue starting...')
-  const workQueue = new Queue('work', REDIS_URL)
+  const workQueue = new Queue('work', REDIS_URL, { 
+    redis: { 
+      tls: { 
+        rejectUnauthorized: false 
+      } 
+    }
+  })
   
+  workQueue.on('error', (err) => {
+    console.log('Worker queue err')
+    console.log(err)
+  })
+
   workQueue.process(maxJobsPerWorker, async job => {
     console.log('Running Job...')
     console.log(job)
